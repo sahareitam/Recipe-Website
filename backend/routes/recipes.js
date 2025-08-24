@@ -1,6 +1,7 @@
 var express = require("express");
 var router = express.Router();
 const recipes_utils = require("./utils/recipes_utils");
+const { getRecipeAnalyzedInstructions, getRecipeFullInformation } = require("./utils/recipes_utils");
 
 router.get("/", (req, res) => res.send("im here"));
 
@@ -81,5 +82,34 @@ router.get("/information/:recipeId", async (req, res, next) => {
   }
 });
 
+router.get("/analyzedInstructions/:recipeId", async (req, res, next) => {
+  try {
+    const { recipeId } = req.params;
+    
+    if (!recipeId) {
+      throw { status: 400, message: "Recipe ID is required" };
+    }
+
+    const instructions = await getRecipeAnalyzedInstructions(recipeId);
+    res.status(200).send(instructions);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/fullInformation/:recipeId", async (req, res, next) => {
+  try {
+    const { recipeId } = req.params;
+    
+    if (!recipeId) {
+      throw { status: 400, message: "Recipe ID is required" };
+    }
+
+    const fullRecipe = await getRecipeFullInformation(recipeId);
+    res.status(200).send(fullRecipe);
+  } catch (error) {
+    next(error);
+  }
+});
 
 module.exports = router;

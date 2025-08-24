@@ -86,10 +86,9 @@
     },
     methods: {
       startCooking() {
-        // Navigate to cooking page or add to meal
-        this.$router.push(`/cooking/${this.$route.params.recipeId}`).catch(() => {
-          // If cooking route doesn't exist, show a message
-          alert('Cooking mode feature coming soon!');
+        this.$router.push({
+          name: 'recipe-preparation',
+          params: { recipeId: this.$route.params.recipeId }
         });
       },
       saveToLastViewed() {

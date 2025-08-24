@@ -126,6 +126,43 @@ async function searchRecipes(query, cuisine, diet, intolerances, number, sort = 
   return response.data.results;
 }
 
+async function getRecipeAnalyzedInstructions(recipe_id) {
+  try {
+    const response = await axios.get(`${api_domain}/${recipe_id}/analyzedInstructions`, {
+      params: {
+        apiKey: process.env.spooncular_apiKey
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching analyzed instructions:", error);
+    throw error;
+  }
+}
+
+async function getRecipeFullInformation(recipe_id) {
+  try {
+    console.log("🔍 Fetching full recipe information for ID:", recipe_id);
+    
+    // Get basic recipe information
+    const basicInfo = await getRecipeInformation(recipe_id);
+    
+    // Get detailed cooking steps
+    const analyzedInstructions = await getRecipeAnalyzedInstructions(recipe_id);
+    
+    // Combine everything together
+    const fullRecipe = {
+      ...basicInfo.data,
+      analyzedInstructions: analyzedInstructions
+    };
+    
+    console.log(" Full recipe information fetched successfully");
+    return fullRecipe;
+  } catch (error) {
+    console.error(" Error fetching full recipe information:", error);
+    throw error;
+  }
+}
 
 exports.searchRecipes = searchRecipes;
 exports.getRecipeDetails = getRecipeDetails;
@@ -133,3 +170,5 @@ exports.getRandomRecipes = getRandomRecipes;
 exports.getMultipleRecipeDetails = getMultipleRecipeDetails;
 exports.getMultipleRecipeDetailsBulk = getMultipleRecipeDetailsBulk;
 exports.getRecipeInformation = getRecipeInformation;
+exports.getRecipeAnalyzedInstructions = getRecipeAnalyzedInstructions;
+exports.getRecipeFullInformation = getRecipeFullInformation;
