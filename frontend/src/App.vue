@@ -82,12 +82,22 @@ export default {
       router.push("/").catch(() => {});
     };
 
-    const mealPlanCount = computed(() => {
-      if (!store.username) return 0;
-      
-      const mealPlan = JSON.parse(localStorage.getItem(`mealPlan_${store.username}`) || '[]');
-      return mealPlan.length;
-    });
+  const mealPlanCount = computed(() => {
+    // If not logged in, there is no meal plan
+    if (!store.username) return 0;
+
+    // Reactive dependency: when this number changes,
+    // re-run and re-read localStorage to refresh the badge
+    store.mealPlanVersion;
+    
+    const key = `mealPlan_${store.username}`;
+    try {
+      const list = JSON.parse(localStorage.getItem(key) || '[]');
+      return Array.isArray(list) ? list.length : 0;
+    } catch {
+      return 0;
+    }
+  });
 
     return { store, logout, mealPlanCount };
   }

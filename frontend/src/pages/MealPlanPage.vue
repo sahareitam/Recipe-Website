@@ -156,18 +156,33 @@ export default {
   },
   methods: {
     loadMealPlan() {
-      if (!this.store.username) return;
-      
+      // Reset to empty if there is no logged-in user
+      if (!this.store.username) { 
+        this.mealPlan = [];
+        return;
+      }
+
       const mealPlanKey = `mealPlan_${this.store.username}`;
-      this.mealPlan = JSON.parse(localStorage.getItem(mealPlanKey) || '[]');
+      try {
+        // Read current user's meal plan from localStorage
+        this.mealPlan = JSON.parse(localStorage.getItem(mealPlanKey) || '[]');
+      } catch {
+        // Fail safe if storage is corrupted
+        this.mealPlan = [];
+      }
     },
+
 
     saveMealPlan() {
       if (!this.store.username) return;
-      
+
       const mealPlanKey = `mealPlan_${this.store.username}`;
       localStorage.setItem(mealPlanKey, JSON.stringify(this.mealPlan));
+
+      // Simple UI update instead of store.bumpMealPlan
+      this.$forceUpdate();
     },
+
 
     getProgress(recipeId) {
       if (!this.store.username) return { completed: 0, total: 0, percentage: 0 };
@@ -243,7 +258,14 @@ export default {
   },
 
   mounted() {
+    // Initial load for the current user
     this.loadMealPlan();
+
+    // React to external changes in the meal plan (add/remove/reorder on other pages)
+    this.$watch(
+      () => this.store.mealPlanVersion,
+      () => { this.loadMealPlan(); }
+    );
   },
 
   watch: {
@@ -252,7 +274,7 @@ export default {
         this.loadMealPlan();
       },
       immediate: true
-    }
+    },
   }
 };
 </script>
