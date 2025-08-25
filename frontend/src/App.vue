@@ -14,31 +14,42 @@
           <b-nav-item :to="{ name: 'main' }">Home</b-nav-item>
           <b-nav-item :to="{ name: 'search' }">Search</b-nav-item>
           <b-nav-item :to="{ name: 'about' }">About</b-nav-item>
+          
         </b-navbar-nav>
         
         <!-- Right side navigation -->
         <b-navbar-nav class="ms-auto">
-          <!-- For non-authenticated users -->
-          <template v-if="!store.username">
-            <b-nav-text class="me-3">Hello Guest</b-nav-text>
-            <b-nav-item :to="{ name: 'login' }">Login</b-nav-item>
-            <b-nav-item :to="{ name: 'register' }">Register</b-nav-item>
-          </template>
+         <!-- For non-authenticated users -->
+        <template v-if="!store.username">
+          <b-nav-text class="me-3">Hello Guest</b-nav-text>
+          <b-nav-item :to="{ name: 'login' }">Login</b-nav-item>
+          <b-nav-item :to="{ name: 'register' }">Register</b-nav-item>
+        </template>
           
           <!-- For authenticated users -->
-          <template v-else>
-            <b-nav-text class="me-3">Welcome, {{ store.username }}</b-nav-text>
-            
-            <!-- Personal Area Dropdown -->
-            <b-nav-item-dropdown text="Personal Area" class="me-2">
-              <b-dropdown-item :to="{ name: 'favorites' }">My Favorite Recipes</b-dropdown-item>
-              <b-dropdown-item :to="{ name: 'my-recipes' }">My Recipes</b-dropdown-item>
-              <b-dropdown-item :to="{ name: 'family-recipes' }">My Family Recipes</b-dropdown-item>
-            </b-nav-item-dropdown>
-            
-            <b-nav-item :to="{ name: 'my-recipes' }" class="me-2">Create New Recipe</b-nav-item>
-            <b-nav-item @click="logout" class="logout-btn">Logout</b-nav-item>
-          </template>
+        <template v-else>
+          <b-nav-text class="me-3">Welcome, {{ store.username }}</b-nav-text>
+          
+          <!-- Personal Area Dropdown -->
+          <b-nav-item-dropdown text="Personal Area" class="me-2">
+            <b-dropdown-item :to="{ name: 'favorites' }">My Favorite Recipes</b-dropdown-item>
+            <b-dropdown-item :to="{ name: 'my-recipes' }">My Recipes</b-dropdown-item>
+            <b-dropdown-item :to="{ name: 'family-recipes' }">My Family Recipes</b-dropdown-item>
+          </b-nav-item-dropdown>
+          
+          <b-nav-item :to="{ name: 'meal-plan' }" class="me-2 position-relative">
+            Meal Plan
+            <span 
+              v-if="mealPlanCount > 0" 
+              class="badge bg-danger position-absolute top-0 start-100 translate-middle rounded-pill"
+            >
+              {{ mealPlanCount }}
+            </span>
+          </b-nav-item>
+          
+          <b-nav-item :to="{ name: 'my-recipes' }" class="me-2">Create New Recipe</b-nav-item>
+          <b-nav-item @click="logout" class="logout-btn">Logout</b-nav-item>
+        </template>
         </b-navbar-nav>
       </b-collapse>
     </b-navbar>
@@ -51,7 +62,7 @@
 </template>
 
 <script>
-import { getCurrentInstance } from 'vue';
+import { getCurrentInstance, computed } from 'vue';
 
 export default {
   name: "App",
@@ -60,7 +71,7 @@ export default {
     const store = internalInstance.appContext.config.globalProperties.store;
     const toast = internalInstance.appContext.config.globalProperties.toast;
     const router = internalInstance.appContext.config.globalProperties.$router;
-
+        
     const logout = () => {
       // מחיקת החיפוש האחרון לפני התנתקות
       if (store.username) {
@@ -71,7 +82,14 @@ export default {
       router.push("/").catch(() => {});
     };
 
-    return { store, logout };
+    const mealPlanCount = computed(() => {
+      if (!store.username) return 0;
+      
+      const mealPlan = JSON.parse(localStorage.getItem(`mealPlan_${store.username}`) || '[]');
+      return mealPlan.length;
+    });
+
+    return { store, logout, mealPlanCount };
   }
 }
 </script>

@@ -24,15 +24,27 @@
             </div>
           </div>
 
-          <!-- Start Cooking Button -->
+          <!-- Action Buttons -->
           <div class="text-center mb-4">
             <b-button 
               variant="primary" 
-              class="custom-button"
+              class="custom-button me-3"
               @click="startCooking"
               size="lg"
             >
-              🍳 Start Cooking
+              <i class="fas fa-play me-2"></i>
+              Start Cooking
+            </b-button>
+            
+            <b-button 
+              v-if="store.username"
+              variant="outline-success" 
+              class="custom-button"
+              @click="addToMealPlan"
+              size="lg"
+            >
+              <i class="fas fa-plus-circle me-2"></i>
+              Add to Meal Plan
             </b-button>
           </div>
 
@@ -85,7 +97,41 @@
       };
     },
     methods: {
+      addToMealPlan() {
+        if (!this.store.username || !this.recipe) return;
+        
+        // Get current meal plan
+        const mealPlanKey = `mealPlan_${this.store.username}`;
+        const currentMealPlan = JSON.parse(localStorage.getItem(mealPlanKey) || '[]');
+        
+        // Check if recipe is already in meal plan
+        if (currentMealPlan.find(item => item.id === this.recipe.id)) {
+          alert('This recipe is already in your meal plan!');
+          return;
+        }
+        
+        // Add recipe to meal plan
+        const mealPlanItem = {
+          id: this.recipe.id,
+          title: this.recipe.title,
+          image: this.recipe.image,
+          readyInMinutes: this.recipe.readyInMinutes,
+          servings: this.recipe.servings,
+          addedAt: Date.now()
+        };
+        
+        currentMealPlan.push(mealPlanItem);
+        localStorage.setItem(mealPlanKey, JSON.stringify(currentMealPlan));
+        
+        alert('Added to meal plan successfully!');
+        
+        // Force reactive update of meal plan count in navbar
+        this.$forceUpdate();
+      },
       startCooking() {
+        // Add to meal plan automatically when starting to cook
+        this.addToMealPlan(); 
+        
         this.$router.push({
           name: 'recipe-preparation',
           params: { recipeId: this.$route.params.recipeId }

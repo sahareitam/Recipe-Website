@@ -1,141 +1,180 @@
-# Recipe Website
+[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/WkLPf7o5)
+[![Open in Visual Studio Code](https://classroom.github.com/assets/open-in-vscode-718a45dd9cf7e7f842a935f5ebbe5719a5e09af4491e668f4dbf3b35d5cca122.svg)](https://classroom.github.com/online_ide?assignment_repo_id=11168133&assignment_repo_type=AssignmentRepo)
 
-This is our final project for the web development course. It's a recipe website where you can search recipes, save favorites, and add family recipes.
+# CookingAi - Recipe Sharing API
 
-## Team
+A full-featured Node.js RESTful API for searching, viewing, saving, and managing recipes — including family recipes passed down generations. Built with Express, MySQL, and the Spoonacular API.
+
+## Id:
 Yehonatan Yamin - 206511727
-Ido Badash - 206917510  
+
+Ido Badash - 206917510
+
 Sahar Eitam - 318283116
 
-## What it does
+## Features
 
-Basic recipe website with search and user accounts. Has two parts - Vue.js frontend and Node.js backend with MySQL database.
-
-Main stuff:
-- Register/login system 
-- Search recipes using Spoonacular API
-- Save favorites
-- Add your own recipes
-- Family recipes section (we got recipes from our grandparents)
-- Shows last recipes you viewed
-- Uses Bootstrap for styling
-
-## Tech Stack
-
-Frontend:
-- Vue 3 
-- Vue Router 
-- Bootstrap-Vue 3 
-- Vuelidate for forms
-- Axios 
-- Bootstrap 5
-
-Backend:
-- Node.js + Express
-- MySQL 
-- Spoonacular API 
-- bcrypt for passwords
-- express-session
+- User registration, login, and logout with session support
+- Search recipes from Spoonacular API
+- Save and view favorite recipes
+- Track last viewed recipes (FIFO, 3 max)
+- Add custom personal recipes
+- Retrieve full details and ingredient info
+- Authorization middleware to protect user-specific endpoints
+- Documented in OpenAPI 3.0.3 (Swagger)
 
 ## Project Structure
 
 ```
-recipe-project/
-├── frontend/                 # Vue.js frontend application
-│   ├── src/
-│   │   ├── components/       # Vue components
-│   │   ├── pages/           # Page components
-│   │   ├── router/          # Vue Router config
-│   │   └── assets/          # Static assets
-│   └── package.json
+project/
+├── routes/
+│   ├── auth.js          # Login, Register, Logout
+│   ├── recipes.js       # Spoonacular recipes
+│   ├── user.js          # Favorites, viewed, and user recipes
 │
-├── backend/                  # Node.js backend API
-│   ├── routes/
-│   │   ├── auth.js          # Authentication routes
-│   │   ├── recipes.js       # Recipe routes
-│   │   └── user.js          # User-specific routes
-│   ├── routes/utils/
-│   │   ├── DButils.js       # Database utilities
-│   │   ├── MySql.js         # MySQL connection
-│   │   ├── recipes_utils.js # Recipe API logic
-│   │   └── user_utils.js    # User data logic
-│   ├── main.js              # Server entry point
-│   └── package.json
+├── utils/
+│   ├── DButils.js       # MySQL query handler
+│   ├── MySql.js         # MySQL connection
+│   ├── recipes_utils.js # External API logic
+│   └── user_utils.js    # Logic for user data actions
 │
-└── README.md                 # This file
+├── main.js              # Express server entry point
+├── .env                 # API keys and DB config
+├── idoandyehonatan-Recipes-1.0.0-resolved.yaml  # OpenAPI spec
 ```
 
-## Setup
+## Tech Stack
 
-Need Node.js, MySQL, and Spoonacular API key.
+- Node.js + Express
+- MySQL (via MySQL2)
+- Spoonacular API
+- dotenv
+- bcrypt
+- express-session
+- Swagger (OpenAPI 3.0)
 
-1. Clone and install:
+## Setup Instructions
+
+### 1. Clone the Repository
+
 ```bash
-git clone <repo-url>
-cd recipe-project
+git clone https://github.com/YOUR_USERNAME/savta-recipes-api.git
+cd savta-recipes-api
 ```
 
-2. Backend:
+### 2. Install Dependencies
+
 ```bash
-cd backend
 npm install
 ```
 
-Make `.env` file:
+### 3. Configure Environment Variables
+
+Create a `.env` file:
+
 ```
-host=localhost
-user=your_mysql_user
-password=your_mysql_password  
-database=recipe_db
+spooncular_apiKey=YOUR_SPOONACULAR_API_KEY
 bcrypt_saltRounds=10
-spooncular_apiKey=your_api_key
 ```
 
-Create database tables (check backend README for SQL), then:
+### 4. Setup the MySQL Database
+
+Make sure you create the following tables:
+
+```sql
+CREATE TABLE users (
+  user_id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(255) UNIQUE NOT NULL,
+  firstname VARCHAR(255),
+  lastname VARCHAR(255),
+  country VARCHAR(255),
+  email VARCHAR(255),
+  password VARCHAR(255)
+);
+
+CREATE TABLE FavoriteRecipes (
+  user_id INT NOT NULL,
+  recipe_id INT NOT NULL,
+  PRIMARY KEY (user_id, recipe_id)
+);
+
+CREATE TABLE LastWatchedRecipes (
+  user_id INT PRIMARY KEY,
+  recipe_id1 INT,
+  recipe_id2 INT,
+  recipe_id3 INT
+);
+
+CREATE TABLE userrecipes (
+  recipe_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  title VARCHAR(255),
+  image TEXT,
+  readyInMinutes INT,
+  popularity INT,
+  vegan BOOLEAN,
+  vegetarian BOOLEAN,
+  glutenFree BOOLEAN,
+  instructions TEXT,
+  ingredients TEXT
+);
+
+CREATE TABLE ViewedRecipes (
+  user_id INT NOT NULL,
+  recipeId INT NOT NULL,
+  PRIMARY KEY (user_id, recipeId)
+);
+```
+
+### 5. Run the App or go into our web
+
 ```bash
-npm start
+node main.js
+```
+local:
+Server starts at: `http://localhost:3000`
+
+Our global server(web):
+CookingAi.cs.bgu.ac.il
+
+## API Reference
+
+Full Swagger docs in `idoandyehonatan-Recipes-1.0.0-resolved.yaml`
+
+You can import it into:
+- Swagger Editor (https://editor.swagger.io/)
+- Postman (https://www.postman.com/)
+- Or generate docs using Swagger UI.
+
+## Example Requests
+
+### Login
+
+```http
+POST /auth/Login
+{
+  "username": "ido",
+  "password": "123456"
+}
 ```
 
-3. Frontend:
-```bash
-cd frontend
-npm install
-npm run serve
+### Add Custom Recipe
+
+```http
+POST /users/add-recipes
+{
+  "title": "Grandma's Soup",
+  "ingredients": "water, carrots, celery",
+  "instructions": "Boil everything",
+  "vegan": true
+}
 ```
 
-Backend: localhost:3000
-Frontend: localhost:8080
+## Contributors
 
-## Database
+- Ido & Yehonatan & Sahar
+- Spoonacular for the food data
 
-MySQL tables:
-- users - user accounts
-- FavoriteRecipes - saved recipes
-- userrecipes - user created recipes  
-- ViewedRecipes - recently viewed
+## License
 
-## API
-
-We made Swagger docs. Import `ido&Yehonatan&Sahar-Recipes-1.0.0-resolved.yaml` into Swagger Editor to see the API.
-
-## Commands
-
-Frontend:
-```bash
-npm run serve    # dev server
-npm run build    # build
-npm run lint     # check code
-```
-
-Backend:
-```bash
-npm start
-```
-
-## About
-
-This was our assignment for Web Development course. Had some issues with connecting frontend to backend at first but figured it out. The authentication part was tricky too.
-
-For the family recipes we actually called our grandparents to get real recipes. Got some good ones that have been in our families for years.
-
-Project has all the required stuff - user login, recipe search, favorites, personal recipes, family recipes section.
+This project is for educational use. Do not redistribute without permission.

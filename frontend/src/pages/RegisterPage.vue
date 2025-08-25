@@ -102,7 +102,7 @@
         />
         <b-form-invalid-feedback v-if="v$.confirmedPassword.$error">
           <div v-if="!v$.confirmedPassword.required">Confirmation is required.</div>
-          <div v-else-if="!v$.confirmedPassword.sameAsPassword">
+          <div v-else-if="!v$.confirmedPassword.sameAs">          
             Passwords do not match.
           </div>
         </b-form-invalid-feedback>
@@ -136,7 +136,7 @@
 </template>
 
 <script>
-import { reactive, getCurrentInstance } from 'vue';
+import { reactive, getCurrentInstance, computed } from 'vue';
 import { useVuelidate } from '@vuelidate/core';
 import { required, minLength, maxLength, alpha, sameAs, email, helpers } from '@vuelidate/validators';
 import rawCountries from '../assets/countries';
@@ -196,7 +196,7 @@ export default {
       },
       confirmedPassword: {
         required,
-        sameAsPassword: sameAs(() => state.password, 'Passwords must match'),
+        sameAsPassword: sameAs(computed(() => state.password)),
       },
     };
 
@@ -204,7 +204,20 @@ export default {
 
     /* submit */
     const register = async () => {
-      if (!(await v$.value.$validate())) return;
+      console.log('Register function called!');
+      console.log('Form data:', state); // 👈 הוסיפי את זה
+      console.log('Password:', state.password); // 👈 הוסיפי
+      console.log('Confirmed Password:', state.confirmedPassword); // 👈 הוסיפי
+      
+      const validationResult = await v$.value.$validate();
+      console.log('Validation result:', validationResult); // 👈 וגם את זה  
+      console.log('Validation errors:', v$.value.$errors); // 👈 וגם את זה
+      console.log('Validation errors:', JSON.stringify(v$.value.$errors, null, 2));
+
+      if (!validationResult) {
+        console.log('Validation failed!');
+        return;
+      }
 
       state.isLoading = true;
       state.submitError = null;
