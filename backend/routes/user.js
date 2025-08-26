@@ -199,4 +199,64 @@ router.delete('/favorites/:recipeId', async (req, res, next) => {
   }
 });
 
+router.get('/my-recipes/:recipeId', async (req, res, next) => {
+  try {
+    const user_id = req.session.user_id;
+    const recipe_id = req.params.recipeId;
+
+    if (!recipe_id) {
+      throw { status: 400, message: "Missing recipe ID" };
+    }
+
+    const recipe = await user_utils.getUserRecipeById(user_id, recipe_id);
+    
+    if (!recipe) {
+      throw { status: 404, message: "Recipe not found" };
+    }
+
+    // Convert to compatible format for RecipeViewPage
+    const formattedRecipe = {
+      id: recipe.id,  // השתמש ב-id הנכון
+      title: recipe.title,
+      readyInMinutes: recipe.readyInMinutes || 0,
+      image: recipe.image || '/api/placeholder/400/300',
+      aggregateLikes: recipe.popularity || 0,
+      vegan: recipe.vegan || false,
+      vegetarian: recipe.vegetarian || false,
+      glutenFree: recipe.glutenFree || false,
+      servings: recipe.servings || 1,
+      instructions: recipe.instructions || '',
+      // Format ingredients as extendedIngredients array
+      extendedIngredients: recipe.ingredients ? 
+        (typeof recipe.ingredients === 'string' ? 
+          recipe.ingredients.split(',').map((ingredient, index) => ({
+            id: index + 1,
+            original: ingredient.trim(),
+            name: ingredient.trim()
+          })) : 
+          recipe.ingredients.map((ingredient, index) => ({
+            id: index + 1,
+            original: ingredient,
+            name: ingredient
+          }))
+        ) : [],
+      // Format instructions as analyzedInstructions
+      analyzedInstructions: recipe.instructions ? [{
+        name: '',
+        steps: recipe.instructions.split('.').filter(step => step.trim()).map((step, index) => ({
+          number: index + 1,
+          step: step.trim() + '.',
+          ingredients: [],
+          equipment: []
+        }))
+      }] : [],
+      // Mark as user recipe
+      isUserRecipe: true
+    };
+
+    res.status(200).send(formattedRecipe);
+  } catch (error) {
+    next(error);
+  }
+});
 module.exports = router;

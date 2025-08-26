@@ -23,7 +23,6 @@ async function getFavoriteRecipes(user_id) {
   return recipes_id; 
 }
 
-
 async function addToLastWatched(user_id, new_recipe_id) {
   const result = await DButils.execQuery(`
     SELECT recipe_id1, recipe_id2, recipe_id3
@@ -83,42 +82,111 @@ async function getLastWatched(user_id) {
 async function insertRecipe({
   user_id,
   title,
-  image,
-  readyInMinutes,
-  popularity,
-  vegan,
-  vegetarian,
-  glutenFree,
+  image = '/api/placeholder/400/300',
+  readyInMinutes = 30,
+  popularity = 0,
+  vegan = false,
+  vegetarian = false,
+  glutenFree = false,
   instructions,
   ingredients
 }) {
-  await DButils.execQuery(`
-    INSERT INTO userrecipes (
-      user_id, title, image, readyInMinutes, popularity,
-      vegan, vegetarian, glutenFree, instructions, ingredients
-    ) VALUES (
-      '${user_id}', '${title}', '${image}', ${readyInMinutes}, ${popularity || 0},
-      ${vegan ? 1 : 0}, ${vegetarian ? 1 : 0}, ${glutenFree ? 1 : 0},
-      '${instructions}', '${ingredients}'
-    )
-  `);
+  try {
+    console.log('Inserting recipe with data:', {
+      user_id, title, readyInMinutes, vegan, vegetarian, glutenFree
+    });
+
+    // וודא שרכיבים הם מחרוזת
+    let ingredientsStr = '';
+    if (Array.isArray(ingredients)) {
+      ingredientsStr = ingredients.join(', ');
+    } else {
+      ingredientsStr = ingredients || '';
+    }
+
+    // ניקוי המחרוזות מתווים מיוחדים
+    const cleanTitle = title ? title.replace(/'/g, "''") : '';
+    const cleanInstructions = instructions ? instructions.replace(/'/g, "''") : '';
+    const cleanIngredients = ingredientsStr ? ingredientsStr.replace(/'/g, "''") : '';
+    const cleanImage = image ? image.replace(/'/g, "''") : '/api/placeholder/400/300';
+
+    // SQL בלי servings זמנית
+    const query = `
+      INSERT INTO userrecipes (
+        user_id, title, image, readyInMinutes, popularity,
+        vegan, vegetarian, glutenFree, instructions, ingredients
+      ) VALUES (
+        ${user_id}, 
+        '${cleanTitle}', 
+        '${cleanImage}', 
+        ${readyInMinutes || 30}, 
+        ${popularity || 0},
+        ${vegan ? 1 : 0}, 
+        ${vegetarian ? 1 : 0}, 
+        ${glutenFree ? 1 : 0},
+        '${cleanInstructions}', 
+        '${cleanIngredients}'
+      )
+    `;
+
+    console.log('Executing query:', query);
+
+    const result = await DButils.execQuery(query);
+    console.log('Recipe inserted successfully:', result);
+    return result;
+  } catch (error) {
+    console.error('Error inserting recipe:', error);
+    throw error;
+  }
 }
 
 async function getUserRecipes(user_id) {
-  const recipes = await DButils.execQuery(`
-    SELECT title, image, readyInMinutes, popularity, vegan, vegetarian, glutenFree
-    FROM userrecipes WHERE user_id = '${user_id}'
-  `);
+  try {
+    console.log('Getting user recipes for user_id:', user_id);
+    
+    const recipes = await DButils.execQuery(`
+      SELECT id, title, image, readyInMinutes, popularity, vegan, vegetarian, glutenFree, servings, instructions, ingredients
+      FROM userrecipes WHERE user_id = '${user_id}'
+    `);
+    
+    console.log('Found recipes:', recipes.length);
+    
+    return recipes.map(recipe => ({
+      id: recipe.id,  // השתמש ב-id הנכון
+      title: recipe.title || 'No Title',
+      image: recipe.image || '/api/placeholder/400/300',
+      readyInMinutes: recipe.readyInMinutes || 30,
+      popularity: recipe.popularity || 0,
+      aggregateLikes: recipe.popularity || 0,
+      vegan: !!recipe.vegan,
+      vegetarian: !!recipe.vegetarian,
+      glutenFree: !!recipe.glutenFree,
+      servings: recipe.servings || 1,
+      instructions: recipe.instructions || '',
+      ingredients: recipe.ingredients || ''
+    }));
+  } catch (error) {
+    console.error('Error in getUserRecipes:', error);
+    throw error;
+  }
+}
 
-  return recipes.map(recipe => ({
-    title: recipe.title,
-    image: recipe.image,
-    readyInMinutes: recipe.readyInMinutes,
-    popularity: recipe.popularity,
-    vegan: !!recipe.vegan,
-    vegetarian: !!recipe.vegetarian,
-    glutenFree: !!recipe.glutenFree
-  }));
+async function getUserRecipeById(user_id, recipe_id) {
+  try {
+    console.log('Getting user recipe by ID:', { user_id, recipe_id });
+    
+    // השתמש ב-id במקום recipe_id
+    const result = await DButils.execQuery(
+      `SELECT * FROM userrecipes WHERE user_id = ${user_id} AND id = ${recipe_id}`
+    );
+    
+    console.log('Recipe found:', result.length > 0 ? 'Yes' : 'No');
+    
+    return result.length > 0 ? result[0] : null;
+  } catch (error) {
+    console.error('Error getting user recipe by ID:', error);
+    throw error;
+  }
 }
 
 async function addViewedRecipe(user_id, recipeId) {
@@ -152,6 +220,7 @@ exports.getFavoriteRecipes = getFavoriteRecipes;
 exports.getLastWatched = getLastWatched;
 exports.insertRecipe = insertRecipe;
 exports.getUserRecipes = getUserRecipes;
+exports.getUserRecipeById = getUserRecipeById;
 exports.addViewedRecipe = addViewedRecipe;
 exports.getViewedRecipes = getViewedRecipes;
 exports.removeFromFavorites = removeFromFavorites;

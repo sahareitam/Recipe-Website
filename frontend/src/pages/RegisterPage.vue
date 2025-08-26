@@ -204,16 +204,7 @@ export default {
 
     /* submit */
     const register = async () => {
-      console.log('Register function called!');
-      console.log('Form data:', state); // 👈 הוסיפי את זה
-      console.log('Password:', state.password); // 👈 הוסיפי
-      console.log('Confirmed Password:', state.confirmedPassword); // 👈 הוסיפי
-      
       const validationResult = await v$.value.$validate();
-      console.log('Validation result:', validationResult); // 👈 וגם את זה  
-      console.log('Validation errors:', v$.value.$errors); // 👈 וגם את זה
-      console.log('Validation errors:', JSON.stringify(v$.value.$errors, null, 2));
-
       if (!validationResult) {
         console.log('Validation failed!');
         return;

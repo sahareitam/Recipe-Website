@@ -232,60 +232,90 @@ export default {
 
   async created() {
     try {
-      // Try to load the recipe from the server
+      const recipeId = this.$route.params.recipeId;
+      console.log("Attempting to load recipe with ID:", recipeId);
+      
       let response;
-      try {
-        console.log("Making request to:", this.$root.store.server_domain + "/recipes/information/" + this.$route.params.recipeId);
-        response = await this.axios.get(
-          this.$root.store.server_domain + "/recipes/information/" + this.$route.params.recipeId
-        );
-        
-        console.log("Response status:", response.status);
-        console.log("Response data:", response.data);
-        console.log("analyzedInstructions:", response.data.analyzedInstructions);
-        console.log("extendedIngredients:", response.data.extendedIngredients);
-        console.log("instructions:", response.data.instructions);
-        
-        // If we got 304 but no data, make a fresh request
-        if (response.status === 304 && (!response.data || Object.keys(response.data).length === 0)) {
-          console.log("Got 304 but no data, making fresh request");
-          response = await this.axios.get(
-            this.$root.store.server_domain + "/recipes/information/" + this.$route.params.recipeId + "?t=" + Date.now()
+      let isUserRecipe = false;
+      
+      // בדוק אם זה מתכון מותאם אישית של המשתמש
+      if (this.$root.store.username) {
+        try {
+          console.log("Checking if it's a user recipe...");
+          const userRecipeResponse = await this.axios.get(
+            `${this.$root.store.server_domain}/users/my-recipes/${recipeId}`
           );
+          
+          if (userRecipeResponse.data) {
+            console.log("Found user recipe:", userRecipeResponse.data);
+            response = userRecipeResponse;
+            isUserRecipe = true;
+          }
+        } catch (userRecipeError) {
+          console.log("Not a user recipe, trying Spoonacular API...");
+          // אם לא מצאנו מתכון מותאם אישית, נסה מה-API
+          if (userRecipeError.response?.status !== 404) {
+            console.error("Error checking user recipe:", userRecipeError);
+          }
         }
-        
-        if (!response.data) {
-          throw new Error("No data received");
+      }
+      
+      // אם לא מצאנו מתכון מותאם אישית, נסה מה-API של Spoonacular
+      if (!isUserRecipe) {
+        try {
+          console.log("Trying Spoonacular API for recipe:", recipeId);
+          response = await this.axios.get(
+            `${this.$root.store.server_domain}/recipes/information/${recipeId}`
+          );
+          console.log("Got Spoonacular recipe:", response.data);
+        } catch (apiError) {
+          console.error("Error loading from Spoonacular API:", apiError);
+          console.log("Full API error:", apiError.response?.data);
+          this.$router.replace("/NotFound");
+          return;
         }
-      } catch (error) {
-        console.log("Full error:", error);
-        console.log("Error response:", error.response);
-        console.log("Error message:", error.message);
-        console.log("error.response.status", error.response?.status);
+      }
+      
+      if (!response?.data) {
+        console.error("No recipe data found");
         this.$router.replace("/NotFound");
         return;
       }
+      
+      const recipeData = response.data;
+      console.log("Processing recipe data:", recipeData);
+      
+      // עיבוד הנתונים לפורמט אחיד
       let {
-        analyzedInstructions,
-        instructions,
-        extendedIngredients,
-        aggregateLikes,
-        readyInMinutes,
-        image,
-        title,
-        servings
-      } = response.data;
+        analyzedInstructions = [],
+        instructions = '',
+        extendedIngredients = [],
+        aggregateLikes = 0,
+        readyInMinutes = 0,
+        image = '/api/placeholder/400/300',
+        title = 'No Title',
+        servings = 1,
+        isUserRecipe: recipeIsFromUser = false
+      } = recipeData;
+      
+      // עיבוד ההוראות
       let _instructions = [];
-      if (analyzedInstructions && Array.isArray(analyzedInstructions)) {
+      if (analyzedInstructions && Array.isArray(analyzedInstructions) && analyzedInstructions.length > 0) {
         _instructions = analyzedInstructions
           .map((fstep) => {
-            fstep.steps[0].step = fstep.name + fstep.steps[0].step;
-            return fstep.steps;
+            if (fstep.steps && Array.isArray(fstep.steps)) {
+              if (fstep.name && fstep.steps[0]) {
+                fstep.steps[0].step = fstep.name + ' ' + fstep.steps[0].step;
+              }
+              return fstep.steps;
+            }
+            return [];
           })
           .reduce((a, b) => [...a, ...b], []);
       }
-      let _recipe = {
-        id: this.$route.params.recipeId, 
+      
+      const _recipe = {
+        id: recipeId,
         instructions,
         _instructions,
         analyzedInstructions,
@@ -294,16 +324,21 @@ export default {
         readyInMinutes,
         image,
         title,
-        servings
+        servings,
+        isUserRecipe: recipeIsFromUser
       };
+      
+      console.log("Final recipe object:", _recipe);
+      
       this.recipe = _recipe;
       this.loadCheckedSteps();
       this.saveToLastViewed();
+      
     } catch (error) {
-      console.log(error);
+      console.error("Unexpected error loading recipe:", error);
+      this.$router.replace("/NotFound");
     }
   },
-
   watch: {
     'recipe._instructions'(newVal) {
       // If the number of steps changed, update the marking array accordingly
