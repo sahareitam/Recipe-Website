@@ -27,6 +27,7 @@
         <!-- Action Buttons -->
         <div class="text-center mb-4">
           <b-button 
+            v-if="$root.store.username"
             variant="primary" 
             class="custom-button me-3"
             @click="startCooking"

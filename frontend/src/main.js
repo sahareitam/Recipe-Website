@@ -82,9 +82,35 @@ app.config.globalProperties.store = store;
 app.config.globalProperties.$router = router;
 app.config.globalProperties.axios = axios;
 
-// Toast function
-app.config.globalProperties.toast = (title, message, variant) => {
-  console.log(`Toast: ${title} - ${message} (${variant})`);
+// Updated Toast function - using simple Bootstrap alert styling
+app.config.globalProperties.toast = (title, message, variant = 'info') => {
+  // Create toast container if it doesn't exist
+  let toastContainer = document.querySelector('.toast-container');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+    toastContainer.style.zIndex = '9999';
+    document.body.appendChild(toastContainer);
+  }
+  
+  // Create toast element
+  const toastId = 'toast-' + Date.now();
+  const toastHtml = `
+    <div id="${toastId}" class="alert alert-${variant} alert-dismissible fade show" role="alert" style="min-width: 300px;">
+      <strong>${title}</strong><br>
+      ${message}
+      <button type="button" class="btn-close" onclick="document.getElementById('${toastId}').remove()"></button>
+    </div>`;
+  
+  toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+  
+  // Auto-remove after 5 seconds
+  setTimeout(() => {
+    const toastElement = document.getElementById(toastId);
+    if (toastElement) {
+      toastElement.remove();
+    }
+  }, 5000);
 };
 
 // Make available globally for components using window

@@ -102,7 +102,7 @@
         />
         <b-form-invalid-feedback v-if="v$.confirmedPassword.$error">
           <div v-if="!v$.confirmedPassword.required">Confirmation is required.</div>
-          <div v-else-if="!v$.confirmedPassword.sameAs">          
+          <div v-else-if="!v$.confirmedPassword.sameAsPassword">          
             Passwords do not match.
           </div>
         </b-form-invalid-feedback>
@@ -205,8 +205,29 @@ export default {
     /* submit */
     const register = async () => {
       const validationResult = await v$.value.$validate();
+      
+      // Check for specific validation errors and show toast
       if (!validationResult) {
-        console.log('Validation failed!');
+        // Check if username contains only letters
+        if (v$.value.username.alpha && v$.value.username.alpha.$invalid) {
+          toast('Validation Error', 'Username must contain only letters.', 'danger');
+        }
+        // Check password validation
+        if (v$.value.password.$invalid) {
+          console.log(v$.value.password);
+          if (!v$.value.password.minLength || !v$.value.password.maxLength) {
+            toast('Password Error', 'Password must be between 5-10 characters long.', 'danger');
+            return;
+          }
+          if (!v$.value.password.hasNumber) {
+            toast('Password Error', 'Password must contain at least one number.', 'danger');
+            return;
+          }
+          if (!v$.value.password.hasSpecialChar) {
+            toast('Password Error', 'Password must contain at least one special character.', 'danger');
+            return;
+          }
+        }
         return;
       }
 
@@ -222,11 +243,15 @@ export default {
           password : state.password,
           country  : state.country,
         });
-        toast('Registration successful', 'You can now login', 'success');
+        toast('Registration Successful', 'You can now login with your account.', 'success');
         router.push('/login');
       } catch (err) {
-        state.submitError =
-          err.response?.data?.message || 'Unexpected server error.';
+        // Handle specific error cases with toast
+        if (err.response?.status === 409 && err.response?.data?.message === "Username taken") {
+          toast('Registration Error', 'Username already exists. Please choose a different username.', 'danger');
+        } else {
+          state.submitError = err.response?.data?.message || 'Unexpected server error.';
+        }
       } finally {
         state.isLoading = false;
       }
